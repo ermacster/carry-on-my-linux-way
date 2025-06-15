@@ -1,0 +1,26 @@
+{
+  "name": "Основы программирования",
+  "children": [
+    {
+      "name": "Переменные",
+      "children": [
+        {"name": "Типы данных"},
+        {"name": "Объявление"}
+      ]
+    },
+    {
+      "name": "Условия",
+      "children": [
+        {"name": "If-Else"},
+        {"name": "Switch"}
+      ]
+    },
+    {
+      "name": "Циклы",
+      "children": [
+        {"name": "For"},
+        {"name": "While"}
+      ]
+    }
+  ]
+}
