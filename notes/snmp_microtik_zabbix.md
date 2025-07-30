@@ -28,7 +28,7 @@ sudo apt update && sudo apt install snmp snmp-mibs-downloader -y
 
 ### Получение списка OID:
 ```bash
-snmpwalk -v2c -c public 192.168.88.1
+snmpwalk -v2c -c public 192.168.88.1 | grep (комментарий к туннелю)(смотрим на микротик)
 ```
 
 ### Получение конкретного OID:
@@ -44,26 +44,28 @@ snmpget -v2c -c public 192.168.88.1 .1.3.6.1.2.1.1.3.0
    - Имя хоста: `RTK_GW01`
    - Группу: например `Network Devices`
    - Интерфейс: `SNMP`, IP-адрес MikroTik
-4. Перейти во вкладку "Templates" и прикрепить шаблон `Template Net SNMP Generic`
+4. Перейти во вкладку "Templates" и прикрепить шаблон `Template Net SNMP Generic` (можно не крипить, если свои делаем, пункт ниже)
+5. Во вкладке value mapping жмем add  и создаем Имя value.status.snmp Значение 1>Up 2>Down
 
 ## 4. Создание собственного Item и Trigger
 
 ### Item (ключ):
 ```
-custom.matht04.custom.xlebokominat
+custom.matht04.custom.xlebokominat(
 ```
 - Тип: `SNMPv2 agent`
-- SNMP OID: **(указать нужный OID, например, .1.3.6.1.x.x)**
+- SNMP OID: **(указать нужный OID, например, .1.3.6.1.x.x)**(ключ что получали выше командой, с любой линукс машины в сети или с самого заббикс)
 - Тип информации: Numeric (unsigned)
 - Прототип Item создан вручную
+- Host interface: ip(здесь роутера, куда приходят этот туннель):161
 
-### Значения:
+### Значения:(задали выше)
 - `1` = Up
 - `2` = Down
 
 ### Trigger:
 ```
-last(/RTK_GW01/custom.matht04.custom.xlebokominat,#3)=2
+last(/RTK_GW01/ключ(задаем его в item),#3)=2
 ```
 - Проверка последних 3 значений
 - Срабатывает, если 3 подряд — значение "2" (Down)
