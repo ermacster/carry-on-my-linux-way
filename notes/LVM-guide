@@ -1,106 +1,80 @@
-markdown
-# Расширение диска в Ubuntu с использованием LVM
-
+Расширение диска в Ubuntu с использованием LVM
 Этот мини-гайд описывает процесс расширения диска в системе Ubuntu, где используется Logical Volume Manager (LVM). Это полезно, например, после увеличения размера виртуального диска в облаке (AWS, GCP, Azure) или гипервизоре (VirtualBox, VMware). Гайд включает базовые шаги по расширению, а также другие полезные команды для работы с LVM.
+Предупреждение:
 
-## ⚠️ Предупреждение
+Все команды выполняются с правами root (используйте sudo).
+Перед работой сделайте резервную копию данных, так как ошибки могут привести к потере информации.
+Замените устройства (/dev/sda, /dev/sda2, ubuntu-vg, ubuntu-lv) на ваши реальные (проверьте с помощью lsblk или pvdisplay).
+Убедитесь, что у вас установлен пакет cloud-utils-growpart для команды growpart (установите: sudo apt install cloud-utils).
+Эти инструкции подходят для файловой системы ext4. Для других (xfs) используйте xfs_growfs.
 
-- Все команды выполняются с правами root (используйте `sudo`)
-- Перед работой сделайте резервную копию данных, так как ошибки могут привести к потере информации
-- Замените устройства (`/dev/sda`, `/dev/sda2`, `ubuntu-vg`, `ubuntu-lv`) на ваши реальные (проверьте с помощью `lsblk` или `pvdisplay`)
-- Убедитесь, что у вас установлен пакет `cloud-utils-growpart` для команды `growpart` (установите: `sudo apt install cloud-utils`)
-- Эти инструкции подходят для файловой системы ext4. Для других (xfs) используйте `xfs_growfs`
+Основные шаги по расширению диска
 
-## Основные шаги по расширению диска
-
-### 1. Пересканировать диск
-
+Пересканировать диск
 Обновляет информацию о размере диска после его физического увеличения (например, в облаке).
+bashecho 1 | sudo tee /sys/class/scsi_device/*/device/rescan
 
-```bash
-echo 1 | sudo tee /sys/class/scsi_device/*/device/rescan
-2. Расширить раздел диска (если нужно)
+Расширить раздел диска (если нужно)
 Если раздел не занимает весь диск, расширьте его с помощью growpart. Это безопасно для онлайн-расширения.
-
 Пример: расширить второй раздел на /dev/sda.
+bashsudo growpart /dev/sda 2
 
-bash
-sudo growpart /dev/sda 2
-3. Расширить физический том (PV)
+Расширить физический том (PV)
 Обновляет PV после изменения размера раздела.
+bashsudo pvresize /dev/sda2
 
-bash
-sudo pvresize /dev/sda2
-4. Расширить логический том (LV)
+Расширить логический том (LV)
 Распределяет всё свободное пространство на LV.
+bashsudo lvextend -l +100%FREE /dev/ubuntu-vg/ubuntu-lv
 
-bash
-sudo lvextend -l +100%FREE /dev/ubuntu-vg/ubuntu-lv
-5. Расширить файловую систему
+Расширить файловую систему
 Адаптирует файловую систему к новому размеру LV.
+bashsudo resize2fs /dev/ubuntu-vg/ubuntu-lv
 
-bash
-sudo resize2fs /dev/ubuntu-vg/ubuntu-lv
+
 После выполнения проверьте результат:
-
-bash
-df -h
+bashdf -h
 lsblk
 Другие полезные команды для работы с LVM
 Просмотр информации
-pvdisplay: Детали физических томов (PV)
 
-vgdisplay: Детали групп томов (VG)
-
-lvdisplay: Детали логических томов (LV)
-
-pvs, vgs, lvs: Краткие версии для PV, VG, LV
-
-lsblk -o NAME,SIZE,TYPE,MOUNTPOINT: Общая структура дисков
-
-fdisk -l или parted -l: Просмотр разделов диска
+pvdisplay: Детали физических томов (PV).
+vgdisplay: Детали групп томов (VG).
+lvdisplay: Детали логических томов (LV).
+pvs, vgs, lvs: Краткие версии для PV, VG, LV.
+lsblk -o NAME,SIZE,TYPE,MOUNTPOINT: Общая структура дисков.
+fdisk -l или parted -l: Просмотр разделов диска.
 
 Создание и расширение
-pvcreate /dev/sdX: Создать новый PV на устройстве
 
-vgcreate my-vg /dev/sdX: Создать новую группу томов (VG)
-
-vgextend my-vg /dev/sdY: Расширить VG, добавив новый PV
-
-lvcreate -L 10G -n my-lv my-vg: Создать новый LV размером 10 ГБ
-
-lvextend -L +5G /dev/my-vg/my-lv: Расширить LV на 5 ГБ (без %FREE)
+pvcreate /dev/sdX: Создать новый PV на устройстве.
+vgcreate my-vg /dev/sdX: Создать новую группу томов (VG).
+vgextend my-vg /dev/sdY: Расширить VG, добавив новый PV.
+lvcreate -L 10G -n my-lv my-vg: Создать новый LV размером 10 ГБ.
+lvextend -L +5G /dev/my-vg/my-lv: Расширить LV на 5 ГБ (без %FREE).
 
 Уменьшение и удаление
+
 Уменьшение LV: Сначала уменьшите файловую систему!
-
-bash
-sudo resize2fs /dev/my-vg/my-lv 20G  # Уменьшить FS до 20 ГБ
+bashsudo resize2fs /dev/my-vg/my-lv 20G  # Уменьшить FS до 20 ГБ
 sudo lvreduce -L 20G /dev/my-vg/my-lv
-lvremove /dev/my-vg/my-lv: Удалить LV
 
-vgreduce my-vg /dev/sdX: Удалить PV из VG (только если свободен)
-
-vgremove my-vg: Удалить VG
-
-pvremove /dev/sdX: Удалить PV
+lvremove /dev/my-vg/my-lv: Удалить LV.
+vgreduce my-vg /dev/sdX: Удалить PV из VG (только если свободен).
+vgremove my-vg: Удалить VG.
+pvremove /dev/sdX: Удалить PV.
 
 Дополнительные утилиты
-vgscan, pvscan, lvscan: Сканировать и обновить информацию о LVM
 
-lvrename /dev/my-vg/old-lv new-lv: Переименовать LV
-
-vgchange -ay: Активировать VG (если неактивна)
-
-lvs -o +devices: Показать устройства, связанные с LV
+vgscan, pvscan, lvscan: Сканировать и обновить информацию о LVM.
+lvrename /dev/my-vg/old-lv new-lv: Переименовать LV.
+vgchange -ay: Активировать VG (если неактивна).
+lvs -o +devices: Показать устройства, связанные с LV.
 
 Полезные советы
-Проверка свободного пространства: vgs или vgdisplay -v
 
-Мониторинг: Используйте watch -n 1 df -h для наблюдения за изменениями
-
-Ошибки: Если pvresize не видит места, проверьте раздел с growpart
-
-Для XFS: Вместо resize2fs используйте sudo xfs_growfs /mount/point
-
-Документация: man lvm, man pvresize или официальное руководство Ubuntu
+Проверка свободного пространства: vgs или vgdisplay -v.
+Мониторинг: Используйте watch -n 1 df -h для наблюдения за изменениями.
+Ошибки: Если pvresize не видит места, проверьте раздел с growpart.
+Для XFS: Вместо resize2fs используйте sudo xfs_growfs /mount/point.
+Документация: man lvm, man pvresize или официальное руководство Ubuntu.
