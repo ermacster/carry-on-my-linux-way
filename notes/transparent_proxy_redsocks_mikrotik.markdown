@@ -122,6 +122,13 @@ add dst-address=0.0.0.0/0 gateway=10.187.192.186 routing-mark=to-proxy comment="
   ```sh
   ss -tunlp | grep 12345
   ```
+- Сохраняем настройки:
+  ```sh
+  ipset save > /etc/ipset.conf
+  netfilter-persistent save
+  iptables-save > /etc/iptables/rules.v4
+  ip6tables-save > /etc/iptables/rules.v6
+  ```
 
 ## 8. Итоги
 
