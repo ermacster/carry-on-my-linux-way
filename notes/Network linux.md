@@ -15,10 +15,6 @@ systemctl status systemd-resolved
 networkctl list
 ip addr show
 ```
-👁️ Просмотр информации
-bash
-# Просмотр сетевых интерфейсов
-ip addr show
 
 # Проверить статус служб
 systemctl status systemd-networkd
@@ -122,4 +118,5 @@ ping -c 3 8.8.8.8
 - `systemd-networkd` — легковесный сетевой менеджер, подходящий для серверов.
 - `NetworkManager` — чаще используется в десктопных средах (GNOME, KDE и т.д.).  
   Убедитесь, что в вашем YAML указан правильный **renderer**.
+
 
