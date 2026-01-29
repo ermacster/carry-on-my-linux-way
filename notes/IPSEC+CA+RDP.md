@@ -136,4 +136,56 @@
 
 **На Сервере (CMD Admin):**
 ```cmd
+
 netsh advfirewall set global ipsec strongcrlcheck 1
+
+##  Доп этап: Дебаг и Сброс кеша 
+Если сертификат отозван, но доступ есть, или сертификат обновлен, но доступа нет — нужно сбросить кеш IPsec и CRL.
+Команды (на Сервере и Клиенте):
+code
+Cmd
+:: 1. Удаление сохраненных ассоциаций безопасности (разрыв соединений)
+netsh advfirewall monitor delete mmsa
+netsh advfirewall monitor delete qmsa
+
+:: 2. (Только на Сервере) Принудительное обновление CRL после отзыва
+certutil -CRL
+
+:: 3. (Только на Сервере) Очистка кеша URL (чтобы сервер забыл старый CRL)
+certutil -urlcache CRL delete
+code
+Code
+---
+
+### Скрипты (для сохранения в файлы)
+
+Сохрани эти команды в `.bat` файлы, чтобы не вбивать их руками каждый раз при тестах.
+
+#### 1. `Reset_IPsec_Connections.bat`
+*(Запускать на клиенте и сервере, если что-то заглючило или поменяли настройки)*
+
+```batch
+@echo off
+echo Resetting IPsec Main Mode Security Associations...
+netsh advfirewall monitor delete mmsa
+echo Resetting IPsec Quick Mode Security Associations...
+netsh advfirewall monitor delete qmsa
+echo Done.
+pause
+2. Force_Revocation_Update.bat
+(Запускать ТОЛЬКО на Сервере сразу после того, как сделал Revoke сертификату)
+code
+Batch
+@echo off
+echo Publishing new CRL...
+certutil -CRL
+
+echo Clearing local URL cache...
+certutil -urlcache CRL delete
+
+echo Resetting active connections to force re-auth...
+netsh advfirewall monitor delete mmsa
+netsh advfirewall monitor delete qmsa
+
+echo Now the revoked client should be blocked immediately.
+pause
